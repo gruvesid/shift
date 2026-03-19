@@ -337,27 +337,31 @@ def activate_account(req: ActivateRequest, db: Session = Depends(get_db)):
 @router.post("/init-admin")
 def init_admin(db: Session = Depends(get_db)):
     """One-time endpoint to create/reset the default admin user."""
-    admin = db.query(User).filter(User.email == "siddhrajsinh.atodaria@gruve.ai").first()
-    if not admin:
-        admin = User(
-            email="siddhrajsinh.atodaria@gruve.ai",
-            name="Siddhrajsinh Atodaria",
-            password_hash=get_password_hash("Test123"),
-            role="admin", plan="enterprise",
-            approval_status="approved",
-            is_active=True, email_verified=True,
-        )
-        db.add(admin)
-        db.commit()
-        return {"message": "Admin created"}
-    else:
-        admin.password_hash   = get_password_hash("Test123")
-        admin.role            = "admin"
-        admin.is_active       = True
-        admin.email_verified  = True
-        admin.approval_status = "approved"
-        db.commit()
-        return {"message": "Admin updated"}
+    try:
+        admin = db.query(User).filter(User.email == "siddhrajsinh.atodaria@gruve.ai").first()
+        if not admin:
+            admin = User(
+                email="siddhrajsinh.atodaria@gruve.ai",
+                name="Siddhrajsinh Atodaria",
+                password_hash=get_password_hash("Test123"),
+                role="admin", plan="enterprise",
+                approval_status="approved",
+                is_active=True, email_verified=True,
+            )
+            db.add(admin)
+            db.commit()
+            return {"message": "Admin created"}
+        else:
+            admin.password_hash   = get_password_hash("Test123")
+            admin.role            = "admin"
+            admin.is_active       = True
+            admin.email_verified  = True
+            admin.approval_status = "approved"
+            db.commit()
+            return {"message": "Admin updated", "email": admin.email, "active": admin.is_active}
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
 
 
 @router.post("/change-password")
