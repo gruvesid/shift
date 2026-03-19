@@ -337,24 +337,12 @@ def activate_account(req: ActivateRequest, db: Session = Depends(get_db)):
 @router.post("/init-admin")
 def init_admin(db: Session = Depends(get_db)):
     """One-time endpoint to create/reset the default admin user."""
-    from app.models.tenant import Tenant
-    from passlib.context import CryptContext
-    pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    tenant = db.query(Tenant).filter(Tenant.slug == "gruve").first()
-    if not tenant:
-        tenant = Tenant(name="Gruve AI", slug="gruve", plan="enterprise", is_active=True)
-        db.add(tenant)
-        db.commit()
-        db.refresh(tenant)
-
     admin = db.query(User).filter(User.email == "siddhrajsinh.atodaria@gruve.ai").first()
     if not admin:
         admin = User(
-            tenant_id=tenant.id,
             email="siddhrajsinh.atodaria@gruve.ai",
             name="Siddhrajsinh Atodaria",
-            password_hash=pwd.hash("Test123"),
+            password_hash=get_password_hash("Test123"),
             role="admin", plan="enterprise",
             approval_status="approved",
             is_active=True, email_verified=True,
@@ -363,10 +351,10 @@ def init_admin(db: Session = Depends(get_db)):
         db.commit()
         return {"message": "Admin created"}
     else:
-        admin.password_hash  = pwd.hash("Test123")
-        admin.role           = "admin"
-        admin.is_active      = True
-        admin.email_verified = True
+        admin.password_hash   = get_password_hash("Test123")
+        admin.role            = "admin"
+        admin.is_active       = True
+        admin.email_verified  = True
         admin.approval_status = "approved"
         db.commit()
         return {"message": "Admin updated"}
