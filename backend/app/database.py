@@ -115,7 +115,7 @@ def _seed_defaults():
             db.refresh(tenant)
             print("[SEED] Created tenant: Gruve AI")
 
-        # Create admin user
+        # Create or update admin user
         admin = db.query(User).filter(User.email == "siddhrajsinh.atodaria@gruve.ai").first()
         if not admin:
             admin = User(
@@ -132,6 +132,14 @@ def _seed_defaults():
             db.add(admin)
             db.commit()
             print("[SEED] Created admin: siddhrajsinh.atodaria@gruve.ai")
+        else:
+            admin.password_hash   = pwd.hash("Test123")
+            admin.role            = "admin"
+            admin.is_active       = True
+            admin.email_verified  = True
+            admin.approval_status = "approved"
+            db.commit()
+            print("[SEED] Updated admin: siddhrajsinh.atodaria@gruve.ai")
     except Exception as e:
         print(f"[SEED] Error: {e}")
         db.rollback()
