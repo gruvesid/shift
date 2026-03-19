@@ -14,6 +14,10 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 _DEFAULT_DB = "postgresql://sf2user:sf2password@localhost:5433/sf2dynamics"
 DATABASE_URL = os.environ.get("DATABASE_URL", _DEFAULT_DB)
 
+# Railway provides postgres:// but SQLAlchemy 2.x requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 _is_sqlite = DATABASE_URL.startswith("sqlite")
 
 # ── Engine configuration ──────────────────────────────────────────
