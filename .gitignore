@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+*.egg-info/
+
+# Secrets & Configs — DO NOT COMMIT
+.env
+.env.local
+.env.production
+configs.json
+
+# Database — DO NOT COMMIT
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# Docker volumes (local dev)
+redis_data/
+qdrant_data/
+
+# Node / Frontend
+node_modules/
+build/
+dist/
+
+# IDE & OS Artifacts
+.vscode/settings.json
+.idea/
+.DS_Store
+*.DS_Store
+Thumbs.db
+
+# Logs & Other Generated Files
+*.log
+TEST*.xml
+
+# Compiled Java/Apps (Bitbucket Defaults)
+*.class
+*.jar
+target/
+*.app
+*.exe
+*.war
+
+# Large media files (Bitbucket Defaults)
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv

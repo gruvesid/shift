@@ -1,0 +1,46 @@
+# ── Web Framework ─────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9        # form/file uploads
+
+# ── Database ──────────────────────────────────────────────────────
+sqlalchemy>=2.0.0              # ORM + SQLite / PostgreSQL engine
+alembic>=1.13.0                # DB migrations
+psycopg2-binary>=2.9.9         # PostgreSQL driver (used on Azure)
+
+# ── Caching ───────────────────────────────────────────────────────
+redis>=5.0.0                   # Redis client
+hiredis>=2.3.0                 # faster Redis parser (optional but recommended)
+
+# ── Vector DB ─────────────────────────────────────────────────────
+qdrant-client>=1.9.0           # Qdrant vector store client
+
+# ── Microsoft / Azure ─────────────────────────────────────────────
+msal>=1.28.0                   # Azure AD OAuth (Dynamics 365 + Fabric)
+pyodbc>=5.0.0                  # Fabric SQL ODBC
+azure-identity>=1.16.0         # Azure managed identity support
+
+# ── Salesforce ────────────────────────────────────────────────────
+simple-salesforce>=1.12.6      # Salesforce REST + Metadata API
+
+# ── LLM Providers ─────────────────────────────────────────────────
+openai>=1.30.0
+anthropic>=0.39.0
+cohere>=5.11.0
+
+# ── Data Processing ───────────────────────────────────────────────
+pydantic>=2.7.0
+pydantic-settings>=2.3.0       # .env → settings class
+requests>=2.32.0
+aiohttp>=3.9.0
+pandas>=2.2.0
+pyarrow>=16.0.0                # Fabric Delta Lake
+deltalake>=0.17.0              # Fabric Delta writes
+
+# ── Utilities ─────────────────────────────────────────────────────
+python-dotenv>=1.0.1
+PyYAML>=6.0.1
+xmltodict>=0.13.0              # SF metadata XML parsing
+loguru>=0.7.2                  # structured logging
+python-jose[cryptography]>=3.3.0  # JWT (for future auth)
+passlib[bcrypt]>=1.7.4            # password hashing (for future auth)

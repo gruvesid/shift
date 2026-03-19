@@ -1,0 +1,82 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────
+# PRODUCTION / AZURE CONTAINER APPS
+# All secrets come from Azure Key Vault references via env vars.
+# Build images and push to Azure Container Registry (ACR) first:
+#   docker build -t <acr>.azurecr.io/sf2d-backend ./backend
+#   docker build -t <acr>.azurecr.io/sf2d-frontend ./frontend
+#   az acr login --name <acr>
+#   docker push <acr>.azurecr.io/sf2d-backend
+#   docker push <acr>.azurecr.io/sf2d-frontend
+# ─────────────────────────────────────────────────────────────────
+
+name: sf2dynamics-prod
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: sf2d_redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: sf2d_qdrant
+    restart: always
+    volumes:
+      - qdrant_data:/qdrant/storage
+    expose:
+      - "6333"
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+  backend:
+    image: ${ACR_LOGIN_SERVER}/sf2d-backend:${IMAGE_TAG:-latest}
+    container_name: sf2d_backend
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=sqlite:////app/data/sf2dynamics.db
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - QDRANT_URL=http://qdrant:6333
+      - FRONTEND_URL=${FRONTEND_URL}
+    volumes:
+      - sqlite_data:/app/data
+    expose:
+      - "8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+
+  frontend:
+    image: ${ACR_LOGIN_SERVER}/sf2d-frontend:${IMAGE_TAG:-latest}
+    container_name: sf2d_frontend
+    restart: always
+    environment:
+      - REACT_APP_API_URL=${BACKEND_URL}
+    ports:
+      - "80:3000"
+    depends_on:
+      - backend
+
+volumes:
+  redis_data:
+  qdrant_data:
+  sqlite_data:
+
+networks:
+  default:
+    name: sf2dynamics_prod_network

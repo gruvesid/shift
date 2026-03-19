@@ -1,0 +1,105 @@
+[
+  {
+    "job_id": "b17e466d-3e92-4df6-83ac-54dadc224258",
+    "pipeline_type": "data",
+    "pipeline_id": "ce8ab171-f4d6-48e5-9ed9-adad34a3ecba",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/ce8ab171-f4d6-48e5-9ed9-adad34a3ecba/jobs/instances/b17e466d-3e92-4df6-83ac-54dadc224258",
+    "saved_at": "2026-03-09T07:20:25.829095Z"
+  },
+  {
+    "job_id": "a460f359-d9d0-4cf8-9a5b-3939cd8b49a3",
+    "pipeline_type": "data",
+    "pipeline_id": "ce8ab171-f4d6-48e5-9ed9-adad34a3ecba",
+    "status": "Succeeded",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/ce8ab171-f4d6-48e5-9ed9-adad34a3ecba/jobs/instances/a460f359-d9d0-4cf8-9a5b-3939cd8b49a3",
+    "saved_at": "2026-03-09T07:18:55.944243Z",
+    "start_time": "2026-03-09T07:18:58.0320377",
+    "end_time": "2026-03-09T07:19:04.2889896",
+    "failure_reason": null
+  },
+  {
+    "job_id": "2577abfc-5dd1-420f-9a81-e984e3d9df69",
+    "pipeline_type": "data",
+    "pipeline_id": "ce8ab171-f4d6-48e5-9ed9-adad34a3ecba",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/ce8ab171-f4d6-48e5-9ed9-adad34a3ecba/jobs/instances/2577abfc-5dd1-420f-9a81-e984e3d9df69",
+    "saved_at": "2026-03-09T07:18:51.669398Z"
+  },
+  {
+    "job_id": "1a3fc00e-dee7-4f3a-b669-fa5aaebb3b99",
+    "pipeline_type": "schema",
+    "pipeline_id": "df6870ca-c787-4372-aecc-0f8e40af8a7d",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/1a3fc00e-dee7-4f3a-b669-fa5aaebb3b99",
+    "saved_at": "2026-03-09T07:17:58.223222Z"
+  },
+  {
+    "job_id": "cdd7be2f-8ea8-430a-9a06-80d489132b8e",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/cdd7be2f-8ea8-430a-9a06-80d489132b8e",
+    "saved_at": "2026-03-09T06:49:56.589439Z"
+  },
+  {
+    "job_id": "71ed0af3-8820-41cc-bc63-e13b2deceb86",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/71ed0af3-8820-41cc-bc63-e13b2deceb86",
+    "saved_at": "2026-03-09T06:48:57.332073Z"
+  },
+  {
+    "job_id": "ca4b29b9-7d58-48be-bce5-1fdb9cc78700",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/ca4b29b9-7d58-48be-bce5-1fdb9cc78700",
+    "saved_at": "2026-03-09T05:32:41.906819Z"
+  },
+  {
+    "job_id": "8c8fd28d-1c91-41b2-9a73-6f36ef6dae1a",
+    "status": "Succeeded",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/8c8fd28d-1c91-41b2-9a73-6f36ef6dae1a",
+    "saved_at": "2026-03-06T07:26:52.929944Z",
+    "start_time": "2026-03-06T07:26:55.0852394",
+    "end_time": "2026-03-06T07:46:18.5996977",
+    "failure_reason": null
+  },
+  {
+    "job_id": "f624a42d-e2aa-470c-b1e1-445ac25ca94b",
+    "status": "Failed",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/f624a42d-e2aa-470c-b1e1-445ac25ca94b",
+    "saved_at": "2026-03-06T07:07:58.251330Z",
+    "start_time": "2026-03-06T07:08:00.4516024",
+    "end_time": "2026-03-06T07:23:06.9618924",
+    "failure_reason": {
+      "requestId": "c385ac9c-c879-4cbe-b6ae-f020e597ef2b",
+      "errorCode": "Failed",
+      "message": "Operation on target Failed to migrate Data to Dataverse failed: Failed to migrate Data to Dataverse"
+    }
+  },
+  {
+    "job_id": "d07ab4ad-6409-4212-8ab2-728194f64f0e",
+    "status": "Failed",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/d07ab4ad-6409-4212-8ab2-728194f64f0e",
+    "saved_at": "2026-03-06T06:59:39.347695Z",
+    "start_time": "2026-03-06T06:59:41.5335019",
+    "end_time": "2026-03-06T07:06:21.3097607",
+    "failure_reason": {
+      "requestId": "372774ff-282b-421e-8af7-ac3dc2150951",
+      "errorCode": "Failed",
+      "message": "Operation on target Failed to fetch objects from Salesforce failed: Failed to fetch objects from Salesforce"
+    }
+  },
+  {
+    "job_id": "bdd924ea-6f4e-4051-94e6-34c5711c8744",
+    "status": "Accepted",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/bdd924ea-6f4e-4051-94e6-34c5711c8744",
+    "saved_at": "2026-03-06T05:56:13.071962Z"
+  },
+  {
+    "job_id": "86c37cb1-3c47-443a-a16e-b6bdfd21e72f",
+    "status": "Cancelled",
+    "triggered_at": "https://api.fabric.microsoft.com/v1/workspaces/6eb57c49-4f30-401a-9d0a-6f3d279d0ba2/items/df6870ca-c787-4372-aecc-0f8e40af8a7d/jobs/instances/86c37cb1-3c47-443a-a16e-b6bdfd21e72f",
+    "saved_at": "2026-03-06T05:50:02.190065Z",
+    "start_time": "2026-03-06T05:50:04.3393426",
+    "end_time": "2026-03-06T05:53:58.035098",
+    "failure_reason": null
+  }
+]

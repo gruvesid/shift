@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flow Feature — Technical Implementation Reference</title>
+<style>
+  :root {
+    --bg:        #0f1117;
+    --surface:   #161b22;
+    --surface2:  #1e2532;
+    --border:    #30363d;
+    --text:      #e6edf3;
+    --text-muted:#8b949e;
+    --accent:    #58a6ff;
+    --green:     #3fb950;
+    --yellow:    #d29922;
+    --red:       #f85149;
+    --purple:    #bc8cff;
+    --orange:    #e3b341;
+    --code-bg:   #161b22;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ── Layout ── */
+  .page { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar TOC ── */
+  .toc {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .toc-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    padding: 0 20px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .toc a {
+    display: block;
+    padding: 5px 20px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12.5px;
+    transition: color .15s, background .15s;
+    border-left: 2px solid transparent;
+  }
+  .toc a:hover {
+    color: var(--accent);
+    background: rgba(88,166,255,.06);
+    border-left-color: var(--accent);
+  }
+  .toc a .num { color: var(--accent); font-weight: 600; margin-right: 4px; }
+
+  /* ── Main content ── */
+  .content { flex: 1; max-width: 960px; padding: 48px 48px 80px; overflow-x: hidden; }
+
+  /* ── Header ── */
+  .doc-header {
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .meta-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 12px; font-size: 12px; color: var(--text-muted);
+  }
+  .pill span { color: var(--text); font-weight: 500; }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 52px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #0d1117;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  h2 { font-size: 20px; font-weight: 700; color: var(--text); }
+  h3 {
+    font-size: 15px; font-weight: 600; color: var(--orange);
+    margin: 22px 0 10px;
+  }
+  h4 { font-size: 13.5px; font-weight: 600; color: var(--text-muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+  p { margin-bottom: 10px; color: var(--text); }
+
+  /* ── File badge ── */
+  .file-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 10px; font-size: 12px;
+    color: var(--text-muted); margin-bottom: 14px; margin-right: 6px;
+  }
+  .file-badge code { color: var(--accent); font-size: 11.5px; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 10px 0 14px;
+    color: #adbac7;
+    font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  }
+  pre .comment { color: #6e7681; }
+  pre .kw      { color: #f47067; }
+  pre .str     { color: #96d0ff; }
+  pre .num     { color: #6cb6ff; }
+  code {
+    background: rgba(110,118,129,.15);
+    border: 1px solid rgba(110,118,129,.25);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12px;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    color: #f0883e;
+  }
+  pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin: 12px 0 18px; border-radius: 6px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 9px 14px; text-align: left;
+    font-weight: 600; color: var(--text-muted);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+    white-space: nowrap;
+  }
+  td { padding: 9px 14px; border-top: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td code { font-size: 11.5px; }
+
+  /* Priority / method badges */
+  .badge {
+    display: inline-block; padding: 1px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .badge-get    { background: rgba(63,185,80,.15);  color: #3fb950; border: 1px solid rgba(63,185,80,.3); }
+  .badge-post   { background: rgba(88,166,255,.15); color: #58a6ff; border: 1px solid rgba(88,166,255,.3); }
+  .badge-put    { background: rgba(210,153,34,.15); color: #e3b341; border: 1px solid rgba(210,153,34,.3); }
+  .badge-delete { background: rgba(248,81,73,.15);  color: #f85149; border: 1px solid rgba(248,81,73,.3); }
+  .badge-1      { background: rgba(63,185,80,.15);  color: #3fb950; border: 1px solid rgba(63,185,80,.3); }
+  .badge-yes    { background: rgba(248,81,73,.15);  color: #f85149; border: 1px solid rgba(248,81,73,.3); }
+  .badge-opt    { background: rgba(139,148,158,.1); color: #8b949e; border: 1px solid var(--border); }
+
+  /* ── Info/warning boxes ── */
+  .callout {
+    border-left: 3px solid;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .callout-info  { border-color: var(--accent);  background: rgba(88,166,255,.07); }
+  .callout-warn  { border-color: var(--yellow);  background: rgba(210,153,34,.07); }
+  .callout-error { border-color: var(--red);     background: rgba(248,81,73,.07); }
+  .callout-green { border-color: var(--green);   background: rgba(63,185,80,.07); }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  /* ── Lists ── */
+  ul, ol { padding-left: 22px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+    margin: 10px 0 14px;
+    font-family: "Cascadia Code", monospace;
+    font-size: 12.5px;
+    line-height: 1.9;
+    color: #adbac7;
+  }
+  .pipeline .step  { color: var(--accent); }
+  .pipeline .arrow { color: var(--text-muted); }
+  .pipeline .note  { color: #3fb950; }
+  .pipeline .branch{ color: var(--purple); }
+
+  /* ── Decision cards ── */
+  .decision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .decision-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .decision-card h4 { margin-top: 0; color: var(--accent); }
+  .decision-card p  { font-size: 13px; color: var(--text-muted); }
+
+  /* ── Section divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* ── Print ── */
+  @media print {
+    .toc { display: none; }
+    .content { padding: 20px; }
+    body { background: #fff; color: #111; }
+    pre, .pipeline { background: #f6f8fa; border-color: #d0d7de; color: #24292f; }
+    code { background: #f6f8fa; color: #e36209; }
+    table { border-color: #d0d7de; }
+    thead tr { background: #f6f8fa; }
+    .callout-info  { background: #ddf4ff; border-color: #0969da; }
+    .callout-warn  { background: #fff8c5; border-color: #9a6700; }
+    .callout-green { background: #dafbe1; border-color: #1a7f37; }
+    .callout-error { background: #ffebe9; border-color: #cf222e; }
+    h2, h3 { color: #111; }
+    .section-num { background: #0969da; }
+    a { color: #0969da; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── Sidebar TOC ── -->
+  <nav class="toc">
+    <div class="toc-title">Flow Implementation</div>
+    <a href="#s1"><span class="num">01</span> Flow Extraction</a>
+    <a href="#s2"><span class="num">02</span> Three Views</a>
+    <a href="#s3"><span class="num">03</span> LLM Conversion</a>
+    <a href="#s4"><span class="num">04</span> Flow Rulebook</a>
+    <a href="#s5"><span class="num">05</span> Edit &amp; Save</a>
+    <a href="#s6"><span class="num">06</span> Deploy (Dataverse API)</a>
+    <a href="#s7"><span class="num">07</span> Connection Fix</a>
+    <a href="#s8"><span class="num">08</span> Fix Button (LLM)</a>
+    <a href="#s9"><span class="num">09</span> History &amp; Logs</a>
+    <a href="#s10"><span class="num">10</span> Manual Deploy Guide</a>
+    <a href="#s11"><span class="num">11</span> Architecture Decisions</a>
+    <a href="#s12"><span class="num">12</span> API Reference</a>
+    <a href="#s13"><span class="num">13</span> DB Schema</a>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="content">
+
+    <div class="doc-header">
+      <h1>Flow Feature — Technical Implementation Reference</h1>
+      <div class="meta-pills">
+        <div class="pill">Scope: <span>Salesforce Flow → Power Automate Pipeline</span></div>
+        <div class="pill">App: <span>SF2Dynamics Migration Wizard</span></div>
+        <div class="pill">Backend: <span>FastAPI (Python)</span></div>
+        <div class="pill">Frontend: <span>React 18</span></div>
+        <div class="pill">DB: <span>PostgreSQL</span></div>
+        <div class="pill">Auth: <span>MSAL SP</span></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s1">
+      <div class="section-header">
+        <span class="section-num">1</span>
+        <h2>Flow Extraction from Salesforce</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/code_converter_router.py</code></span>
+
+      <p>Salesforce flows are extracted via the <strong>Tooling API</strong> (not the REST API) because the <code>Metadata</code> field on the <code>Flow</code> object is only accessible through Tooling SOQL.</p>
+
+      <h3>Flow ID Resolution — 4-Strategy Fallback</h3>
+      <p><strong>Function:</strong> <code>_resolve_flow_version_id()</code> (~line 120)</p>
+      <div class="callout callout-info">
+        <strong>Why needed</strong>
+        The Salesforce component list returns <code>DefinitionId</code> (starting with <code>300</code>), but the Tooling API <code>Metadata</code> field requires the active <strong>version ID</strong> (starting with <code>301</code>). The resolution chain handles both.
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Priority</th><th>Strategy</th><th>API Call</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-1">PRIMARY</span></td><td>REST FlowDefinitionView by ApiName</td><td><code>SELECT ActiveVersionId, LatestVersionId FROM FlowDefinitionView WHERE ApiName = '{name}'</code></td></tr>
+            <tr><td>2</td><td>Direct Tooling GET (ID starts with <code>301</code>)</td><td><code>Tooling GET /Flow/{id}</code></td></tr>
+            <tr><td>3</td><td>REST sobjects FlowDefinitionView</td><td><code>/services/data/v59.0/sobjects/FlowDefinitionView/{id}</code></td></tr>
+            <tr><td>4</td><td>Tooling SOQL by DefinitionId</td><td><code>SELECT Id FROM Flow WHERE DefinitionId = '{id}' ORDER BY VersionNumber DESC LIMIT 1</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Metadata Fetch</h3>
+      <p><strong>Function:</strong> <code>_fetch_flow_metadata()</code> (~line 202)</p>
+      <pre><span class="comment"># Primary query — Metadata field only accessible via Tooling SOQL</span>
+SELECT Metadata FROM Flow WHERE Id = '{version_id}'
+
+<span class="comment"># Secondary query — internal fields</span>
+SELECT Id, FullName, Status, ProcessType FROM Flow WHERE Id = '{version_id}'</pre>
+      <p>Returns a dict with full <code>Metadata</code> + internal fields prefixed with <code>_</code> (<code>_version_id</code>, <code>_process_type</code>, etc.).</p>
+
+      <h3>Source Format Returned</h3>
+      <p><strong>Function:</strong> <code>_fetch_flow_source()</code> (~line 334)<br>
+      Returns <code>__FLOW_META__:{json}</code> where <code>json</code> contains:</p>
+      <ul>
+        <li><code>metadata</code> — full Flow.Metadata dict (variables, decisions, records, screens, etc.)</li>
+        <li><code>text</code> — formatted text for LLM (sections labelled VARIABLES, DECISIONS, RECORDS, etc.)</li>
+        <li><code>raw_json</code> — pretty-printed JSON for the XML view tab</li>
+      </ul>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <span class="section-num">2</span>
+        <h2>Flow Display — Three Views</h2>
+      </div>
+      <span class="file-badge"><code>frontend/src/components/CodeConverterPage.js</code></span>
+      <p>The source panel renders flows across <strong>4 tabs</strong>: Visual · Chart · XML · Raw</p>
+
+      <h3>Visual View</h3>
+      <p><strong>Components:</strong> <code>FlowViewer()</code> (~ln 470), <code>FlowSection()</code> (~ln 130), <code>FlowItem()</code> (~ln 152)<br>
+      Renders an accordion of all flow elements grouped by type:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Section</th><th>Data Source</th><th>Details Shown</th></tr></thead>
+          <tbody>
+            <tr><td>Variables</td><td><code>metadata.variables[]</code></td><td>dataType, isInput/isOutput/isCollection</td></tr>
+            <tr><td>Decisions</td><td><code>metadata.decisions[]</code></td><td>rules with conditions and connector targets</td></tr>
+            <tr><td>Record Lookups</td><td><code>metadata.recordLookups[]</code></td><td>object, filters, output assignments</td></tr>
+            <tr><td>Record Creates</td><td><code>metadata.recordCreates[]</code></td><td>object, field input assignments</td></tr>
+            <tr><td>Record Updates</td><td><code>metadata.recordUpdates[]</code></td><td>object, filters, field assignments</td></tr>
+            <tr><td>Record Deletes</td><td><code>metadata.recordDeletes[]</code></td><td>object, filters</td></tr>
+            <tr><td>Action Calls</td><td><code>metadata.actionCalls[]</code></td><td>actionType, inputParameters</td></tr>
+            <tr><td>Loops</td><td><code>metadata.loops[]</code></td><td>collection, iteration order</td></tr>
+            <tr><td>Screens</td><td><code>metadata.screens[]</code></td><td>fields list</td></tr>
+            <tr><td>Subflows</td><td><code>metadata.subflows[]</code></td><td>referencedFlowApiName</td></tr>
+            <tr><td>Assignments</td><td><code>metadata.assignments[]</code></td><td>assignmentItems</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Chart View (Mermaid Diagram)</h3>
+      <p><strong>Components:</strong> <code>FlowChart()</code> (~ln 350), <code>buildMermaidFlowchart()</code> (~ln 239)<br>
+      Converts metadata into Mermaid <code>flowchart TD</code> syntax. Rendered via Mermaid.js with dark theme.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Element Type</th><th>Mermaid Shape</th><th>CSS Class</th></tr></thead>
+          <tbody>
+            <tr><td>Decision</td><td><code>{diamond}</code></td><td><code>decision</code></td></tr>
+            <tr><td>Record (create/update/etc.)</td><td><code>[rectangle]</code></td><td><code>record</code></td></tr>
+            <tr><td>Action / Subflow</td><td><code>([rounded])</code></td><td><code>action</code></td></tr>
+            <tr><td>Loop</td><td><code>{{hexagon}}</code></td><td><code>loop</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>XML View</h3>
+      <p>Shows <code>flowMeta.raw_json</code> — pretty-printed JSON of all Flow.Metadata fields. Displayed in <code>CodeBlock()</code>. Source: <code>raw_json</code> field from <code>_fetch_flow_source()</code>.</p>
+
+      <h3>Raw View</h3>
+      <p>Shows <code>flowMeta.text</code> — formatted text created during extraction:</p>
+      <pre>// ─── Flow: Account_Creation ───
+// Type: Flow | Status: Active
+// ─── VARIABLES (2) ───
+[JSON]
+// ─── DECISIONS (1) ───
+[JSON]
+...</pre>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s3">
+      <div class="section-header">
+        <span class="section-num">3</span>
+        <h2>Flow Conversion via LLM</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/code_converter_router.py</code></span>
+      <span class="file-badge"><code>backend/app/models/rulebook.py</code></span>
+      <p><strong>Endpoint:</strong> <code>POST /code-converter/convert</code></p>
+
+      <h3>Conversion Pipeline</h3>
+      <div class="pipeline">
+<span class="step">Source text</span> (from _fetch_flow_source)
+         <span class="arrow">↓</span>
+<span class="step">_get_rulebook(db, "flow")</span>          <span class="note">← system_prompt + rules from DB</span>
+         <span class="arrow">↓</span>
+<span class="step">_get_field_mapping_context(db)</span>     <span class="note">← Dataverse field/entity mapping from Fabric SQL</span>
+         <span class="arrow">↓</span>
+<span class="step">_build_prompt()</span>                    <span class="note">← rules + field context + flow text</span>
+         <span class="arrow">↓</span>
+<span class="step">_call_llm()</span>                        <span class="note">← OpenAI / Anthropic / Cohere</span>
+         <span class="arrow">↓</span>
+<span class="step">Parse output:</span> extract &lt;converted&gt;...&lt;/converted&gt;
+         <span class="arrow">↓</span>
+<span class="step">Auto-save to ConvertedItem table</span>   <span class="note">← upsert via POST /d365-deploy/save</span>
+      </div>
+
+      <h3>LLM Output Format</h3>
+      <p>The LLM is instructed to return structured JSON inside <code>&lt;converted&gt;</code> tags:</p>
+      <pre>{
+  "flow_name": "Account_Creation",
+  "flow_type": "Manual",
+  "trigger_table": "none",
+  "trigger_event": "Manual",
+  "description": "Plain English description of flow purpose",
+  "power_automate_summary": "Step-by-step migration notes",
+  "trigger_inputs": {
+    "Account_Name": { "type": "string", "description": "Account name entered by user" }
+  },
+  "actions": [
+    {
+      "step": 1,
+      "name": "Create_Account",
+      "action_type": "AddRow",
+      "description": "Create new Account record in Dataverse",
+      "inputs": {
+        "table_name": "accounts",
+        "row": {
+          "name": "@{triggerBody()?['Account_Name']}",
+          "new_dynamiccheckbox": false
+        }
+      },
+      "outputs": {}
+    }
+  ],
+  "manual_steps": ["One-time: authorize Dataverse connection in PA portal"],
+  "notes": "Migration notes"
+}</pre>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s4">
+      <div class="section-header">
+        <span class="section-num">4</span>
+        <h2>Flow Rulebook</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/models/rulebook.py</code></span>
+      <span class="file-badge"><code>backend/app/power_automate_router.py</code></span>
+
+      <h3>DB Model — <code>rulebooks</code> table</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Column</th><th>Type</th><th>Value for Flow</th></tr></thead>
+          <tbody>
+            <tr><td><code>component_type</code></td><td>VARCHAR(50) UNIQUE</td><td><code>"flow"</code></td></tr>
+            <tr><td><code>title</code></td><td>VARCHAR(200)</td><td>"Salesforce Flow → Power Automate Cloud Flow (JSON)"</td></tr>
+            <tr><td><code>system_prompt</code></td><td>TEXT</td><td>Expert migration engineer prompt</td></tr>
+            <tr><td><code>rules</code></td><td>TEXT</td><td>6-section conversion rules</td></tr>
+            <tr><td><code>updated_at</code></td><td>DATETIME</td><td>Auto-set</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Rules — 6 Sections</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Section</th><th>Content</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 — Flow Type Detection</strong></td><td><code>process_type + trigger_type</code> → flow_type table (Screen Flow, Automated, Scheduled, etc.)</td></tr>
+            <tr><td><strong>2 — Trigger Inputs</strong></td><td><code>fieldType + dataType</code> → trigger_inputs schema (InputField+String→string, DropdownBox→string, DisplayText→SKIP)</td></tr>
+            <tr><td><strong>3 — Action Mapping</strong></td><td>RecordCreate→AddRow, RecordUpdate→UpdateRow, RecordLookup→GetRow/ListRows, Decision→Condition, Loop→Foreach, emailSimple→SendEmail</td></tr>
+            <tr><td><strong>4 — Field Name Rules</strong></td><td>Always use <code>Dataverse_Column</code> from field mapping; entity logical names from <code>Dynamics_Object</code>; NEVER Salesforce <code>__c</code> names</td></tr>
+            <tr><td><strong>5 — Formula Mapping</strong></td><td>TODAY()→utcNow(), IF(c,t,f)→if(), TEXT()→string(), a=b→equals(), etc.</td></tr>
+            <tr><td><strong>6 — Output JSON Structure</strong></td><td>Exact JSON schema the LLM must return (inside <code>&lt;converted&gt;...&lt;/converted&gt;</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Critical Rules</h3>
+      <div class="callout callout-warn">
+        <strong>⚠ Must follow</strong>
+        <ul>
+          <li><code>AddRow</code> row values MUST use <strong>simple</strong> <code>@{triggerBody()?['field']}</code> references only — no <code>if()</code>, no <code>equals()</code> nested inside row values</li>
+          <li>Always include <code>"new_dynamiccheckbox": false</code> in every Account <code>AddRow</code> action</li>
+          <li>Choice/OptionSet fields → integer <code>DY_picklist</code> codes, <strong>never</strong> string labels</li>
+        </ul>
+      </div>
+
+      <h3>Seed Endpoint</h3>
+      <p><strong>Endpoint:</strong> <code>POST /power-automate/seed-flow-rulebook</code><br>
+      <strong>Function:</strong> <code>seed_flow_rulebook()</code> — upserts the <code>rulebooks</code> row for <code>component_type="flow"</code> from <code>FLOW_PA_RULEBOOK</code> constant in <code>power_automate_router.py</code>.<br>
+      <strong>Response:</strong> <code>{"ok": true, "action": "updated"|"created", "title": "..."}</code></p>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <span class="section-num">5</span>
+        <h2>Edit &amp; Save Converted Flow</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/d365_deploy_router.py</code></span>
+      <span class="file-badge"><code>frontend/src/components/CodeConverterPage.js</code></span>
+
+      <h3>Initial Save (Auto on Convert)</h3>
+      <p><strong>Endpoint:</strong> <code>POST /d365-deploy/save</code><br>
+      <strong>Model:</strong> <code>SaveConversionRequest</code> — connection_id, component_type, component_name, sf_source, d365_output, llm_model, tokens, cost<br>
+      <strong>Logic:</strong> Upsert — if <code>ConvertedItem</code> exists for same <code>run_id:type:name</code>, update it; else create new.<br>
+      <strong>Frontend:</strong> Called automatically after successful conversion; <code>savedItemId</code> state set from response.</p>
+
+      <h3>Manual Edit</h3>
+      <p>Frontend flow:</p>
+      <ol>
+        <li>User clicks <strong>✏ Edit</strong> → <code>editMode = true</code>, <code>editedCode = convertedCode</code></li>
+        <li>Textarea shown with full JSON for editing</li>
+        <li><strong>💾 Save Changes</strong> → <code>PUT /d365-deploy/saved/{savedItemId}</code></li>
+      </ol>
+      <p><strong>Endpoint:</strong> <code>PUT /d365-deploy/saved/{item_id}</code><br>
+      <strong>Function:</strong> <code>edit_saved()</code><br>
+      <strong>Logic:</strong> Updates <code>ConvertedItem.d365_output</code>, resets <code>status = "converted"</code> (must redeploy), updates timestamp.</p>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s6">
+      <div class="section-header">
+        <span class="section-num">6</span>
+        <h2>Deploy to Power Automate (Dataverse API)</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/power_automate_router.py</code></span>
+
+      <div class="callout callout-error">
+        <strong>Why Dataverse API and NOT PA Management API</strong>
+        The PA Management API (<code>api.flow.microsoft.com</code>) does not support Service Principal (app-only) tokens — it requires delegated user auth. Calling it with an SP token returns <code>ClientScopeAuthorizationFailed</code>. The Dataverse Workflow API (category=5) works with SP auth using scope <code>{env_url}/.default</code>.
+      </div>
+
+      <h3>Full Deploy Pipeline</h3>
+      <div class="pipeline">
+<span class="step">POST /power-automate/deploy</span>
+         <span class="arrow">↓</span>
+<span class="step">Create DeploymentLog</span> (status="running") <span class="note">← FIRST — so all errors appear in history</span>
+         <span class="arrow">↓</span>
+<span class="step">_parse_flow_json(converted_code)</span>
+  <span class="branch">├──</span> Strip &lt;converted&gt;...&lt;/converted&gt; tags
+  <span class="branch">├──</span> Try direct JSON.parse
+  <span class="branch">├──</span> Regex search for JSON blocks (```json, {"flow_name":, etc.)
+  <span class="branch">└──</span> Fallback: bracket-depth scan
+         <span class="arrow">↓</span>
+<span class="step">_is_structured_json(flow_json)?</span>
+  <span class="branch">├── YES</span> → _build_clientdata_from_structured()
+  <span class="branch">└── NO</span>  → _build_clientdata_from_logicapps() → _normalise_definition()
+         <span class="arrow">↓</span>
+<span class="step">_deploy_via_dataverse_api()</span>
+         <span class="arrow">↓</span>
+<span class="step">Update DeploymentLog</span> (status, flow_url, log_text)
+<span class="step">Update ConvertedItem</span> (status="deployed"|"manual")
+      </div>
+
+      <h3>JSON Format Detection</h3>
+      <p><strong>Function:</strong> <code>_is_structured_json()</code> — returns <code>True</code> if JSON has <code>"flow_name"</code> key AND <code>"actions"</code> is a list.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Format</th><th>Indicator</th><th>Handler</th></tr></thead>
+          <tbody>
+            <tr><td>POC AI Structured</td><td><code>flow_name</code> + <code>actions[]</code></td><td><code>_build_clientdata_from_structured()</code></td></tr>
+            <tr><td>Logic Apps Definition</td><td><code>properties.definition</code> or <code>$schema</code></td><td><code>_build_clientdata_from_logicapps()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Action Type Mapping — Structured → PA</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>action_type</th><th>PA Action</th><th>operationId</th></tr></thead>
+          <tbody>
+            <tr><td><code>AddRow</code></td><td>OpenApiConnection</td><td><code>CreateRecord</code></td></tr>
+            <tr><td><code>UpdateRow</code></td><td>OpenApiConnection</td><td><code>UpdateRecord</code></td></tr>
+            <tr><td><code>GetRow</code></td><td>OpenApiConnection</td><td><code>GetItem</code></td></tr>
+            <tr><td><code>ListRows</code></td><td>OpenApiConnection</td><td><code>ListRecords</code></td></tr>
+            <tr><td><code>DeleteRow</code></td><td>OpenApiConnection</td><td><code>DeleteRecord</code></td></tr>
+            <tr><td><code>SendEmail</code></td><td>OpenApiConnection (Office365)</td><td><code>SendEmailV2</code></td></tr>
+            <tr><td><code>InitializeVariable</code></td><td>InitializeVariable</td><td>—</td></tr>
+            <tr><td><code>SetVariable</code></td><td>SetVariable</td><td>—</td></tr>
+            <tr><td><code>Condition</code></td><td>If</td><td>—</td></tr>
+            <tr><td><code>Foreach</code></td><td>Foreach</td><td>—</td></tr>
+            <tr><td><code>RunChildFlow</code></td><td>Workflow</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Trigger Selection by flow_type</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>flow_type</th><th>Trigger Type</th><th>PA Trigger</th></tr></thead>
+          <tbody>
+            <tr><td><code>Automated</code> / <code>RecordAfterSave</code></td><td>OpenApiConnectionNotification</td><td><code>SubscribeToEntityChanges</code> (Dataverse row trigger)</td></tr>
+            <tr><td><code>Scheduled</code></td><td>Recurrence</td><td><code>Recurrence</code></td></tr>
+            <tr><td><code>Manual</code> / <code>Instant</code> / <code>Screen Flow</code></td><td>Request</td><td><code>Button</code> with input schema</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Normalize Legacy Logic Apps Format — <code>_normalise_definition()</code></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Transform</th><th>Old Value</th><th>New Value</th></tr></thead>
+          <tbody>
+            <tr><td>Action type</td><td><code>"ApiConnection"</code></td><td><code>"OpenApiConnection"</code></td></tr>
+            <tr><td>operationId</td><td><code>"PostItem"</code></td><td><code>"CreateRecord"</code></td></tr>
+            <tr><td>operationId</td><td><code>"PatchItem"</code></td><td><code>"UpdateRecord"</code></td></tr>
+            <tr><td>operationId</td><td><code>"GetItems"</code></td><td><code>"ListRecords"</code></td></tr>
+            <tr><td>operationId</td><td><code>"DeleteItem"</code></td><td><code>"DeleteRecord"</code></td></tr>
+            <tr><td>Parameters</td><td><code>body/item/*</code></td><td><code>parameters/*</code></td></tr>
+            <tr><td>Auth</td><td>(missing)</td><td><code>"@parameters('$authentication')"</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Dataverse Workflow API — Call Sequence</h3>
+      <pre><span class="comment"># 1. Auth — MSAL SP token</span>
+scope = f"{env_url}/.default"
+token = msal.ConfidentialClientApplication(...).acquire_token_for_client(scopes=[scope])
+
+<span class="comment"># 2. Check for existing flow (DELETE + re-CREATE — PATCH clientdata is unreliable)</span>
+GET {env_url}/api/data/v9.2/workflows?$filter=name eq '{name}' and category eq 5
+if found: DELETE {env_url}/api/data/v9.2/workflows({wf_id})
+
+<span class="comment"># 3. Create flow</span>
+POST {env_url}/api/data/v9.2/workflows
+Body: {
+  "name": flow_name,
+  "category": 5,           <span class="comment"># Modern Flow (Power Automate)</span>
+  "type": 1,               <span class="comment"># Definition</span>
+  "primaryentity": "none",
+  "clientdata": "&lt;json-string&gt;",  <span class="comment"># double-serialized!</span>
+  "statecode": 0,          <span class="comment"># Draft</span>
+  "statuscode": 1
+}
+
+<span class="comment"># 4. Extract workflow GUID from OData-EntityId response header</span>
+
+<span class="comment"># 5. Auto-activate</span>
+PATCH {wf_api}({wf_id}) → {statecode: 1, statuscode: 2}</pre>
+      <p><strong>Flow Portal URL built as:</strong><br>
+      <code>https://make.powerautomate.com/environments/{power_platform_env_id}/flows/{wf_id}/edit</code></p>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s7">
+      <div class="section-header">
+        <span class="section-num">7</span>
+        <h2>Connection Fix — Environments Endpoint</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/power_automate_router.py</code></span>
+      <p><strong>Endpoint:</strong> <code>GET /power-automate/environments/{connection_id}</code><br>
+      <strong>Function:</strong> <code>list_environments()</code></p>
+
+      <div class="callout callout-warn">
+        <strong>What changed</strong>
+        Previously called PA Management API (<code>api.flow.microsoft.com</code>) to list environments — this fails with SP auth (<code>ClientScopeAuthorizationFailed</code>). Now derives the environment directly from the stored connection config — no API call made.
+      </div>
+
+      <h3>Required Connection Config Fields</h3>
+      <p>Stored in <code>Connection.config_json</code>:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Required</th><th>Example</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>d365_environment_url</code></td><td><span class="badge badge-yes">YES</span></td><td><code>https://org0734f801.crm8.dynamics.com</code></td><td>Dataverse API base URL</td></tr>
+            <tr><td><code>d365_tenant_id</code></td><td><span class="badge badge-yes">YES</span></td><td><code>a5c8736e-...</code></td><td>Azure AD tenant</td></tr>
+            <tr><td><code>d365_client_id</code></td><td><span class="badge badge-yes">YES</span></td><td><code>...</code></td><td>Service principal app ID</td></tr>
+            <tr><td><code>d365_client_secret</code></td><td><span class="badge badge-yes">YES</span></td><td><code>...</code></td><td>Service principal secret</td></tr>
+            <tr><td><code>power_platform_env_id</code></td><td><span class="badge badge-opt">optional</span></td><td><code>abc123-...</code></td><td>PA portal env GUID (for correct flow URLs)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s8">
+      <div class="section-header">
+        <span class="section-num">8</span>
+        <h2>Fix Button — LLM Auto-Fix on Error</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/d365_deploy_router.py</code></span>
+      <span class="file-badge"><code>frontend/src/components/CodeConverterPage.js</code></span>
+
+      <div class="callout callout-green">
+        <strong>What it does</strong>
+        After a deploy failure, the <strong>🔧 Fix</strong> button sends the full error context to the LLM and auto-updates the converted code so the user can deploy again immediately — no manual editing required.
+      </div>
+
+      <h3>Backend Endpoint</h3>
+      <p><strong>Endpoint:</strong> <code>POST /d365-deploy/saved/{item_id}/fix</code><br>
+      <strong>Function:</strong> <code>fix_saved()</code><br>
+      <strong>Request:</strong> <code>{ "error_context": "&lt;deploy error message&gt;" }</code></p>
+
+      <h4>System Prompt</h4>
+      <pre>You are an expert Salesforce → Microsoft Dynamics 365 migration engineer.
+A converted component failed to deploy. Analyse the error and produce a corrected version.
+
+Rules:
+1. Fix ONLY the issues described in the error. Do not refactor unrelated code.
+2. For C# plugins: keep IPlugin structure, recursion guard, Contains() guards, using statements.
+3. For Flow JSON: keep same JSON structure, fix field names / action types / expressions.
+4. For PCF TypeScript: keep StandardControl&lt;IInputs,IOutputs&gt; structure.
+5. Return COMPLETE fixed code — not a diff.
+
+Respond ONLY in:
+&lt;fixed_code&gt;...&lt;/fixed_code&gt;
+&lt;explanation&gt;...&lt;/explanation&gt;</pre>
+
+      <h4>User Prompt Includes</h4>
+      <ul>
+        <li><code>COMPONENT TYPE</code> and <code>COMPONENT NAME</code></li>
+        <li><code>ORIGINAL SOURCE CODE</code> (Salesforce Apex/Flow) — from <code>ConvertedItem.sf_source</code></li>
+        <li><code>CURRENT CONVERTED CODE</code> (the version that failed)</li>
+        <li><code>DEPLOY ERROR</code> (exact error from Dataverse or PA API)</li>
+      </ul>
+
+      <p><strong>LLM:</strong> Uses <code>get_llm_for_task(db, "convert")</code> — highest-quality model configured for conversion.<br>
+      <strong>Auto-update:</strong> If <code>fixed_code</code> differs, <code>ConvertedItem.d365_output</code> is updated and <code>status</code> reset to <code>"converted"</code>. LLM usage logged to <code>llm_usage</code> table.</p>
+
+      <h3>Frontend Behavior</h3>
+      <p><strong>Function:</strong> <code>handleFix()</code> — <code>_getLastError()</code> collects error from:</p>
+      <ul>
+        <li><code>deployResult.errors[]</code> — D365 plugin/PCF deploy errors</li>
+        <li><code>deployResult.manual_instructions</code> — manual deploy message</li>
+        <li><code>paResult.error</code> — Power Automate deploy error</li>
+        <li><code>paResult.log_text</code> — full deploy log</li>
+      </ul>
+      <p>After fix: <code>convertedCode</code> updated, <code>deployResult</code> and <code>paResult</code> reset, green banner shows explanation + model + token cost.</p>
+      <div class="callout callout-info">
+        <strong>Visual cue</strong> The Fix button turns <strong style="color:#f85149">red with warning styling</strong> when there is an active unresolved deploy error.
+      </div>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s9">
+      <div class="section-header">
+        <span class="section-num">9</span>
+        <h2>Deployment History &amp; Logs</h2>
+      </div>
+      <span class="file-badge"><code>backend/app/models/deployment_log.py</code></span>
+      <span class="file-badge"><code>backend/app/d365_deploy_router.py</code></span>
+      <span class="file-badge"><code>frontend/src/components/CodeConverterPage.js</code></span>
+
+      <div class="callout callout-green">
+        <strong>Key behaviour</strong>
+        The <code>DeploymentLog</code> row is committed to DB <em>before</em> the deploy attempt starts — so all failures (credential errors, JSON parse failures, Dataverse API errors) are always captured in history.
+      </div>
+
+      <h3>DB Model — <code>deployment_logs</code></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Column</th><th>Type</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>connection_id</code></td><td>INT FK</td><td>Which org</td></tr>
+            <tr><td><code>component_type</code></td><td>VARCHAR</td><td><code>"flow"</code></td></tr>
+            <tr><td><code>component_name</code></td><td>VARCHAR</td><td>e.g. <code>"Account_Creation"</code></td></tr>
+            <tr><td><code>source</code></td><td>VARCHAR</td><td><code>"converter"</code> or <code>"plan"</code></td></tr>
+            <tr><td><code>source_item_id</code></td><td>INT</td><td>FK to ConvertedItem</td></tr>
+            <tr><td><code>status</code></td><td>VARCHAR</td><td><code>running</code> / <code>success</code> / <code>failed</code> / <code>manual</code></td></tr>
+            <tr><td><code>log_text</code></td><td>TEXT</td><td>Full deployment output (capped 50k chars)</td></tr>
+            <tr><td><code>log_file_path</code></td><td>TEXT</td><td>Path to full log file on disk</td></tr>
+            <tr><td><code style="color:#3fb950">flow_url</code></td><td>TEXT</td><td><code>https://make.powerautomate.com/.../flows/{id}/edit</code></td></tr>
+            <tr><td><code>assembly_id</code></td><td>TEXT</td><td>Plugin GUID (non-flow)</td></tr>
+            <tr><td><code>step_ids_json</code></td><td>TEXT</td><td>JSON array of step GUIDs (non-flow)</td></tr>
+            <tr><td><code>web_resource_id</code></td><td>TEXT</td><td>PCF GUID (non-flow)</td></tr>
+            <tr><td><code>error_message</code></td><td>TEXT</td><td>Short error summary</td></tr>
+            <tr><td><code>created_at</code></td><td>DATETIME</td><td>Log start</td></tr>
+            <tr><td><code>completed_at</code></td><td>DATETIME</td><td>Log finish</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Log Endpoints</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Function</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /d365-deploy/logs/{connection_id}</code></td><td><code>list_logs()</code></td><td>List logs, filter by component_name + component_type</td></tr>
+            <tr><td><code>GET /d365-deploy/logs/{connection_id}/{log_id}</code></td><td><code>get_log()</code></td><td>Full detail including <code>log_text</code></td></tr>
+            <tr><td><code>GET /d365-deploy/log-download/{log_id}</code></td><td><code>download_log()</code></td><td>Download <code>.log</code> file</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Frontend History Modal</h3>
+      <p><strong>Trigger:</strong> 📋 History button → <code>handleLoadHistory()</code><br>
+      Calls: <code>GET /d365-deploy/logs/{selectedOrg}?component_name={name}&amp;component_type={type}&amp;limit=50</code></p>
+      <ul>
+        <li><strong>Flow URL column:</strong> if <code>log.flow_url</code> set → shows <strong style="color:#e3b341">⚡ Open Flow ↗</strong> link</li>
+        <li><strong>Expandable rows:</strong> click any row → fetches full <code>log_text</code> — shows red error banner + scrollable log</li>
+        <li><strong>Download button (⬇):</strong> links to <code>GET /d365-deploy/log-download/{log_id}</code></li>
+      </ul>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s10">
+      <div class="section-header">
+        <span class="section-num">10</span>
+        <h2>Manual Deploy Guide</h2>
+      </div>
+      <span class="file-badge"><code>frontend/src/components/CodeConverterPage.js</code></span>
+      <p><strong>Trigger:</strong> 📖 Manual Deploy button → sets <code>guideTab = selectedComp.type</code> → opens slide-in panel<br>
+      <strong>Component:</strong> <code>ManualDeployGuide()</code><br>
+      <strong>Tab navigation:</strong> Apex Class · Apex Trigger · LWC→PCF · Aura→PCF · <strong>Flow→PA</strong></p>
+
+      <h3>Flow Guide Content</h3>
+      <p><strong>Title:</strong> Deploy Flow as Power Automate Flow<br>
+      <strong>Prerequisites:</strong> Power Automate license · Microsoft 365 account · Dataverse environment access</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Copy converted flow JSON from Target panel</td></tr>
+            <tr><td>2</td><td>Open <code>make.powerautomate.com</code> and sign in</td></tr>
+            <tr><td>3</td><td>Create new Instant/Automated cloud flow</td></tr>
+            <tr><td>4</td><td>Use "Peek code" (⋯ menu) to paste individual actions, or import flow package</td></tr>
+            <tr><td>5</td><td>Update each connector → authorize Dataverse connection</td></tr>
+            <tr><td>6</td><td>Test with sample data → fix errors → Turn On</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h4>Error Hints</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Keyword</th><th>Hint</th></tr></thead>
+          <tbody>
+            <tr><td><code>connection</code></td><td>Click "Fix connection" → sign in with account that has Dataverse access</td></tr>
+            <tr><td><code>environment</code></td><td>Ensure you are in the matching Power Automate environment</td></tr>
+            <tr><td><code>schema</code></td><td>Schema errors mean action type changed — recreate that action manually</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s11">
+      <div class="section-header">
+        <span class="section-num">11</span>
+        <h2>Key Architecture Decisions</h2>
+      </div>
+      <div class="decision-grid">
+        <div class="decision-card">
+          <h4>Decision 1 — Dataverse API over PA Management API</h4>
+          <p>The PA Management API requires delegated user auth and rejects SP tokens with <code>ClientScopeAuthorizationFailed</code>. The Dataverse Workflow API (<code>/api/data/v9.2/workflows</code>) accepts SP auth via <code>{env_url}/.default</code> — matching exactly how the reference POC AI project works.</p>
+        </div>
+        <div class="decision-card">
+          <h4>Decision 2 — DELETE + re-CREATE (not PATCH)</h4>
+          <p>PATCH on an existing workflow's <code>clientdata</code> field returns <code>TemplateValidationError</code>. The reliable pattern is: check for existing flow by name → DELETE → POST new. Guarantees a clean state every time.</p>
+        </div>
+        <div class="decision-card">
+          <h4>Decision 3 — Log Created Before Deployment</h4>
+          <p>The <code>DeploymentLog</code> row is committed to DB before any attempt. This ensures all failures — credential errors, JSON parse failures, Dataverse 400/401 — are always visible in the History modal.</p>
+        </div>
+        <div class="decision-card">
+          <h4>Decision 4 — Two-Format Clientdata Pipeline</h4>
+          <p>Two paths for backward compatibility: <strong>Structured JSON</strong> (POC AI format) → <code>_build_clientdata_from_structured()</code>; <strong>Legacy Logic Apps</strong> (old ApiConnection/PostItem) → <code>_normalise_definition()</code> → wrap.</p>
+        </div>
+        <div class="decision-card">
+          <h4>Decision 5 — Fix Before Redeploy (not Retry)</h4>
+          <p>Rather than silently retrying, the Fix button sends the actual error to the LLM for targeted correction. The fixed code replaces the stored conversion and the user explicitly re-deploys — full visibility and control.</p>
+        </div>
+      </div>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s12">
+      <div class="section-header">
+        <span class="section-num">12</span>
+        <h2>API Reference — All Flow Endpoints</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/code-converter/components/{connection_id}</code></td><td>List all flows (name, status, processType)</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/code-converter/source/{connection_id}/flow/{component_id}</code></td><td>Fetch flow source (<code>__FLOW_META__:{json}</code>)</td></tr>
+            <tr><td><span class="badge badge-post">POST</span></td><td><code>/code-converter/convert</code></td><td>Convert flow via LLM (component_type="flow")</td></tr>
+            <tr><td><span class="badge badge-post">POST</span></td><td><code>/d365-deploy/save</code></td><td>Save converted flow JSON to DB (upsert)</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/d365-deploy/saved/{connection_id}?component_type=flow</code></td><td>List saved flow conversions</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/d365-deploy/saved/{connection_id}/{item_id}</code></td><td>Get single saved flow (with sf_source)</td></tr>
+            <tr><td><span class="badge badge-put">PUT</span></td><td><code>/d365-deploy/saved/{item_id}</code></td><td>Edit converted flow JSON</td></tr>
+            <tr><td><span class="badge badge-post">POST</span></td><td><code>/d365-deploy/saved/{item_id}/fix</code></td><td>LLM auto-fix with error context</td></tr>
+            <tr><td><span class="badge badge-post">POST</span></td><td><code>/d365-deploy/saved/{item_id}/deploy</code></td><td>Deploy (non-flow — triggers D365 service)</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/d365-deploy/logs/{connection_id}?component_type=flow</code></td><td>List flow deployment history</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/d365-deploy/logs/{connection_id}/{log_id}</code></td><td>Full log detail with log_text</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/d365-deploy/log-download/{log_id}</code></td><td>Download full log file</td></tr>
+            <tr><td><span class="badge badge-get">GET</span></td><td><code>/power-automate/environments/{connection_id}</code></td><td>List PA environments (config-derived, no API call)</td></tr>
+            <tr><td><span class="badge badge-post">POST</span></td><td><code>/power-automate/deploy</code></td><td>Deploy flow to Dataverse Workflow API</td></tr>
+            <tr><td><span class="badge badge-post">POST</span></td><td><code>/power-automate/seed-flow-rulebook</code></td><td>Upsert flow rulebook in DB</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <hr />
+
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="section" id="s13">
+      <div class="section-header">
+        <span class="section-num">13</span>
+        <h2>DB Schema — Flow-Related Tables</h2>
+      </div>
+
+      <h3><code>rulebooks</code></h3>
+      <pre>id              SERIAL PRIMARY KEY
+component_type  VARCHAR(50) UNIQUE NOT NULL   <span class="comment">-- "flow"</span>
+title           VARCHAR(200) NOT NULL
+system_prompt   TEXT NOT NULL DEFAULT ''
+rules           TEXT NOT NULL DEFAULT ''
+updated_at      DATETIME</pre>
+
+      <h3><code>converted_items</code> (flow rows)</h3>
+      <pre>id            SERIAL PRIMARY KEY
+run_id        VARCHAR  <span class="comment">-- "{connection_id}:flow:{flow_name}"</span>
+item_type     VARCHAR  <span class="comment">-- "flow"</span>
+item_name     VARCHAR  <span class="comment">-- e.g. "Account_Creation"</span>
+sf_source     TEXT     <span class="comment">-- __FLOW_META__:{json} from Tooling API</span>
+d365_output   TEXT     <span class="comment">-- converted PA JSON (LLM output)</span>
+status        VARCHAR  <span class="comment">-- converted / deploying / deployed / manual / failed</span>
+llm_model     VARCHAR
+input_tokens  INT
+output_tokens INT
+cost_usd      FLOAT
+created_at    DATETIME
+updated_at    DATETIME</pre>
+
+      <h3><code>deployment_logs</code> (flow rows)</h3>
+      <pre>id              SERIAL PRIMARY KEY
+connection_id   INT
+component_type  VARCHAR  <span class="comment">-- "flow"</span>
+component_name  VARCHAR
+source          VARCHAR  <span class="comment">-- "converter"</span>
+source_item_id  INT      <span class="comment">-- FK to converted_items.id</span>
+status          VARCHAR  <span class="comment">-- running / success / failed / manual</span>
+log_text        TEXT     <span class="comment">-- full deployment output</span>
+flow_url        TEXT     <span class="comment">-- https://make.powerautomate.com/environments/{env_id}/flows/{wf_id}/edit</span>
+error_message   TEXT
+created_at      DATETIME
+completed_at    DATETIME</pre>
+
+      <h3><code>llm_usage</code> (fix &amp; convert calls)</h3>
+      <pre>call_type      VARCHAR  <span class="comment">-- "fix" | "convert" | "validate"</span>
+provider       VARCHAR  <span class="comment">-- "anthropic" | "openai" | "cohere"</span>
+model          VARCHAR
+connection_id  INT
+component_name VARCHAR
+component_type VARCHAR  <span class="comment">-- "flow"</span>
+input_tokens   INT
+output_tokens  INT
+cost_usd       FLOAT
+duration_ms    INT
+status         VARCHAR  <span class="comment">-- "success" | "error"</span></pre>
+
+    </div>
+
+    <div style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);text-align:center;">
+      SF2Dynamics Migration Wizard — Flow Implementation Reference &nbsp;·&nbsp; Generated 2026-03-17
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
