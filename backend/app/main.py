@@ -31,8 +31,12 @@ app = FastAPI(title="SF2Dynamics API", lifespan=lifespan)
 # CORS must be added BEFORE including routes so OPTIONS preflight requests
 # (sent by browsers before POST/DELETE) are intercepted correctly.
 # allow_origin_regex matches ANY localhost port so dev servers never break.
+_frontend_url = os.getenv("FRONTEND_URL", "")
+_allowed_origins = [_frontend_url] if _frontend_url else []
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=_allowed_origins,
     allow_origin_regex=r"http://localhost(:\d+)?",
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
