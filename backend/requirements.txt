@@ -44,3 +44,4 @@ xmltodict>=0.13.0              # SF metadata XML parsing
 loguru>=0.7.2                  # structured logging
 python-jose[cryptography]>=3.3.0  # JWT (for future auth)
 passlib[bcrypt]>=1.7.4            # password hashing (for future auth)
+bcrypt<4.0.0                      # passlib 1.7.4 incompatible with bcrypt 4.x
